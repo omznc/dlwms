@@ -56,6 +56,20 @@ def upload(repo, tag, todo):
             print(f"{tag}: {min(i + BATCH, len(links))}/{len(links)}", flush=True)
 
 
+def missing(rows, have, files_dir, lost):
+    """Return (asset name, file) for each row without an asset. Add the rows without a real file to lost."""
+    todo = []
+    for path, size in rows:
+        name, src = asset_name(path), Path(files_dir, path)
+        if name in have:
+            continue
+        if not src.is_file() or (src.stat().st_size == 0 and size > 0):
+            lost.append(path)
+            continue
+        todo.append((name, src))
+    return todo
+
+
 def main(fit_db, files_dir, repo):
     db = sqlite3.connect(f"file:{fit_db}?mode=ro", uri=True)
     by_tag = defaultdict(list)
@@ -67,15 +81,7 @@ def main(fit_db, files_dir, repo):
         assert len(names) == len(rows), f"{tag}: two paths give one asset name"
         assert len(rows) < MAX_ASSETS, f"{tag}: {len(rows)} files, split the release"
         have = existing_assets(repo, tag)
-        todo = []
-        for path, size in rows:
-            name, src = asset_name(path), Path(files_dir, path)
-            if name in have:
-                continue
-            if not src.is_file() or (src.stat().st_size == 0 and size > 0):
-                lost.append(path)
-                continue
-            todo.append((name, src))
+        todo = missing(rows, have, files_dir, lost)
         print(f"{tag}: {len(rows)} files, {len(have)} in the release, {len(todo)} to upload", flush=True)
         upload(repo, tag, todo)
     if lost:
