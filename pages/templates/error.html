@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Greška {{ status_code | default(404) }}{% endblock %}
+
+{% block main %}
+{%- set _code = (status_code | default(404)) | int -%}
+{%- set _msg = message | default(detail | default('')) -%}
+{%- set _titles = {
+  400: 'Neispravan zahtjev',
+  403: 'Nemate pristup',
+  404: 'Stranica nije pronađena',
+  500: 'Greška na serveru',
+  503: 'Arhiva trenutno nije dostupna'
+} -%}
+<section class="err" aria-labelledby="err-title">
+  <p class="err__code">ERR {{ _code }}</p>
+  <h1 id="err-title">{{ _titles.get(_code, 'Nešto nije u redu') }}</h1>
+  <p>
+    {%- if _msg and _msg not in ('Not Found', 'Internal Server Error') %}{{ _msg }}
+    {%- elif _code == 404 %}Obavijest ili dokument ne postoji u arhivi, ili je adresa pogrešna.    {%- else %}Pokušajte ponovo za nekoliko trenutaka.{% endif -%}
+  </p>
+  <ul>
+    <li><a href="/"><svg class="i" aria-hidden="true"><use href="#i-arrow-right"></use></svg>najnovije u arhivi</a></li>
+    <li><a href="/?q=rezultati+ispita"><svg class="i" aria-hidden="true"><use href="#i-arrow-right"></use></svg>rezultati ispita</a></li>
+    <li><a href="/?q=rok+za+predaju"><svg class="i" aria-hidden="true"><use href="#i-arrow-right"></use></svg>rokovi za predaju</a></li>
+  </ul>
+</section>
+{% endblock %}

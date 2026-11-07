@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}{% if q %}{{ q }} – pretraga{% else %}Pretraga{% endif %}{% endblock %}
+
+{% block main %}
+{#- ---------------------------------------------------------------------
+    Settings. Change these if your routes or "kind" values differ.
+    --------------------------------------------------------------------- -#}
+{%- set _item = item_prefix | default('/item/') -%}
+{%- set KIND_POST = 'obavijest' -%}
+{%- set KIND_DOC = 'dokument' -%}
+
+{#- Current filters. p.subject may be one string or a list (multi-select). -#}
+{%- set f_kind = p.kind or '' -%}
+{%- set f_subjects = (p.subject if (p.subject is iterable and p.subject is not string) else ([p.subject] if p.subject else [])) | list -%}
+{%- set f_from = p.from or '' -%}
+{%- set f_to = p.to or '' -%}
+{%- set n_active = (1 if f_kind else 0) + (f_subjects | length) + (1 if (f_from or f_to) else 0) -%}
+{%- set is_home = not q and n_active == 0 -%}
+{%- set n_total = total if total is defined else (results | length if results else 0) -%}
+
+{#- Optional facet counts: facets = {'kind': {...}, 'subject': {...}}; year_hist = [(year, count), ...] -#}
+{%- set _fk = (facets.kind if (facets is defined and facets and facets.kind) else {}) -%}
+{%- set _fs = (facets.subject if (facets is defined and facets and facets.subject) else {}) -%}
+
+{#- Query string from the current search. drop: keys to leave out; drop_subject: one subject to leave out. -#}
+{%- macro qs(drop=[], drop_subject=none) -%}
+{%- set pairs = [('q', q), ('kind', f_kind)] -%}
+{%- for s in f_subjects %}{% if s != drop_subject %}{% set _ = pairs.append(('subject', s)) %}{% endif %}{% endfor -%}
+{%- set _ = pairs.extend([('from', f_from), ('to', f_to)]) -%}
+{%- for k, v in pairs if v and k not in drop -%}
+{{ k }}={{ v | urlencode }}{% if not loop.last %}&amp;{% endif %}
+{%- endfor -%}
+{%- endmacro -%}
+
+{#- Link to page n. "args" can be a ready query string or a dict. -#}
+{%- macro page_href(n) -%}
+?{% if args is mapping %}{% for k, v in args.items() if v and k != 'page' %}{% if v is iterable and v is not string %}{% for x in v %}{{ k | urlencode }}={{ x | urlencode }}&amp;{% endfor %}{% else %}{{ k | urlencode }}={{ v | urlencode }}&amp;{% endif %}{% endfor %}{% elif args %}{{ args }}&amp;{% endif %}page={{ n }}
+{%- endmacro -%}
+
+{%- macro is_doc(kind) -%}{{ 'y' if (kind | string | lower) in (KIND_DOC, 'document', 'doc', 'dokumenti') else '' }}{%- endmacro -%}
+
+{%- macro kletter(kind) -%}
+{%- if is_doc(kind) -%}<span class="k k--doc" title="Dokument"><svg class="i" aria-hidden="true"><use href="#i-file"></use></svg><span class="vh">Dokument</span></span>
+{%- else -%}<span class="k k--post" title="Obavijest"><svg class="i" aria-hidden="true"><use href="#i-megaphone"></use></svg><span class="vh">Obavijest</span></span>{%- endif -%}
+{%- endmacro -%}
+
+{%- set X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>' | safe -%}
+
+<div class="shell">
+
+  {# ===================== Filters ===================== #}
+  <aside class="side" aria-label="Filteri">
+    <details class="filters" open{% if n_active %} data-active="1"{% endif %}>
+      <summary class="filters__sum">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"></path></svg>
+        Filteri
+        {% if n_active %}<span class="filters__n"><span class="vh">aktivno: </span>{{ n_active }}</span>{% endif %}
+        <svg class="filters__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+      </summary>
+      <div class="filters__body">
+
+        <fieldset class="fgroup">
+          <legend class="sec">Vrsta</legend>
+          <div>
+            <label class="opt{% if not f_kind %} is-on{% endif %}"><input type="radio" name="kind" value="" form="sf"{% if not f_kind %} checked{% endif %}><span class="k" aria-hidden="true"><svg class="i"><use href="#i-list"></use></svg></span><span class="opt__name">Sve</span>{% if _fk %}<span class="n">{{ (_fk.values() | sum) }}</span>{% endif %}</label>
+            <label class="opt{% if f_kind == KIND_POST %} is-on{% endif %}"><input type="radio" name="kind" value="{{ KIND_POST }}" form="sf"{% if f_kind == KIND_POST %} checked{% endif %}><span class="k k--post" aria-hidden="true"><svg class="i"><use href="#i-megaphone"></use></svg></span><span class="opt__name">Obavijesti</span>{% if KIND_POST in _fk %}<span class="n">{{ _fk[KIND_POST] }}</span>{% endif %}</label>
+            <label class="opt{% if f_kind == KIND_DOC %} is-on{% endif %}"><input type="radio" name="kind" value="{{ KIND_DOC }}" form="sf"{% if f_kind == KIND_DOC %} checked{% endif %}><span class="k k--doc" aria-hidden="true"><svg class="i"><use href="#i-file"></use></svg></span><span class="opt__name">Dokumenti</span>{% if KIND_DOC in _fk %}<span class="n">{{ _fk[KIND_DOC] }}</span>{% endif %}</label>
+          </div>
+        </fieldset>
+
+        <fieldset class="fgroup">
+          <legend class="sec">Predmet <span>{% if f_subjects %}{{ f_subjects | length }} {{ 'odabran' if f_subjects | length == 1 else 'odabrana' }}{% else %}više izbora{% endif %}</span></legend>
+          <div>
+            <div class="sfind" data-subject-search hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M16.5 16.5L21 21"></path></svg>
+              <label class="vh" for="subj-q">Traži predmet</label>
+              <input id="subj-q" type="search" placeholder="Traži predmet…" autocomplete="off">
+              <kbd aria-hidden="true">p</kbd>
+            </div>
+            <div class="subj" data-subject-list>
+              {%- for s in (subjects | select('in', f_subjects) | list) + (subjects | reject('in', f_subjects) | list) %}
+              <label class="opt"><input type="checkbox" name="subject" value="{{ s }}" form="sf"{% if s in f_subjects %} checked{% endif %}><i class="cb" aria-hidden="true"></i><span class="opt__name">{{ s }}</span>{% if s in _fs %}<span class="n">{{ _fs[s] }}</span>{% endif %}</label>
+              {%- endfor %}
+            </div>
+            <p class="hint" data-subject-hint aria-live="polite"></p>
+          </div>
+        </fieldset>
+
+        <fieldset class="fgroup">
+          <legend class="sec">Godina {% if f_from or f_to %}<span>{{ f_from or '2005' }}–{{ f_to or 'danas' }}</span>{% endif %}</legend>
+          <div>
+            {% if year_hist is defined and year_hist %}
+            {%- set _mx = (year_hist | map(attribute=1) | max) or 1 -%}
+            <div class="hist" aria-hidden="true">
+              {%- for y, c in year_hist %}<i class="{{ 'in' if ((not f_from or y >= f_from | int) and (not f_to or y <= f_to | int)) else '' }}" style="height:{{ [2, (c / _mx * 40) | round | int] | max }}px" title="{{ y }}: {{ c }}"></i>{% endfor %}
+            </div>
+            <div class="hist-l" aria-hidden="true"><span>{{ year_hist[0][0] }}</span><span>{{ year_hist[-1][0] }}</span></div>
+            {% endif %}
+            <div class="years">
+              <label for="f-from">od<input class="field" type="number" id="f-from" name="from" value="{{ f_from }}" min="2005" max="2100" inputmode="numeric" placeholder="2005" form="sf"></label>
+              <label for="f-to">do<input class="field" type="number" id="f-to" name="to" value="{{ f_to }}" min="2005" max="2100" inputmode="numeric" placeholder="danas" form="sf"></label>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="factions">
+          <button class="btn btn--inv" type="submit" form="sf">Primijeni</button>
+          {% if n_active %}<a class="btn" href="?{{ qs(['kind', 'subject', 'from', 'to']) }}">Očisti</a>{% endif %}
+        </div>
+      </div>
+    </details>
+  </aside>
+
+  {# ===================== Results ===================== #}
+  <section class="pane" aria-labelledby="res-h">
+    <div class="mh">
+      {% if is_home %}
+      <h1 id="res-h"><b>Najnovije</b> u arhivi</h1>
+      {% else %}
+      <h1 id="res-h" role="status"><b>{{ n_total }}</b> rezultata{% if q %} za <span class="q">„{{ q }}“</span>{% endif %}</h1>
+      {% endif %}
+      {% if f_kind %}<a class="tag" href="?{{ qs(['kind']) }}" aria-label="Ukloni filter vrste"><span>{{ 'Dokumenti' if is_doc(f_kind) else 'Obavijesti' }}</span>{{ X }}</a>{% endif %}
+      {% for s in f_subjects %}<a class="tag" href="?{{ qs(drop_subject=s) }}" aria-label="Ukloni predmet {{ s }}"><span>{{ s }}</span>{{ X }}</a>{% endfor %}
+      {% if f_from or f_to %}<a class="tag" href="?{{ qs(['from', 'to']) }}" aria-label="Ukloni filter godina"><span>{{ f_from or '2005' }}–{{ f_to or 'danas' }}</span>{{ X }}</a>{% endif %}
+      {% if n_active > 1 %}<a class="clear" href="?{{ qs(['kind', 'subject', 'from', 'to']) }}">očisti sve</a>{% endif %}
+    </div>
+
+    <div id="res">
+    {% if is_home %}
+    <p class="sugg"><span>česte pretrage:</span>
+      {%- for s in ['rok za predaju', 'rezultati ispita', 'raspored', 'termin ispita', 'uvid u radove', 'predavanja'] %}
+      <a href="?q={{ s | urlencode }}">{{ s }}</a>
+      {%- endfor %}
+    </p>
+    {% endif %}
+
+    {%- set _rows = results if results else (recent if (is_home and recent is defined and recent) else []) -%}
+    {% if _rows %}
+    <div class="th" aria-hidden="true"><span></span><span>Datum</span><span>Predmet</span><span>Naslov</span></div>
+    <ol class="rows">
+      {%- for r in _rows %}
+      <li class="row">
+        {{ kletter(r.kind | default(KIND_POST)) }}
+        {% if r.date %}<time class="d" datetime="{{ r.date }}">{{ r.date }}</time>{% elif r.year %}<time class="d" datetime="{{ r.year }}">{{ r.year }}</time>{% else %}<span class="d"></span>{% endif %}
+        <span class="s">{{ r.subject }}</span>
+        <div class="tx">
+          <h2 class="t"><a href="{{ _item }}{{ r.id }}/">{{ r.title }}</a></h2>
+          {% if r.snippet %}<p class="x">{{ r.snippet | safe }}</p>{% endif %}
+        </div>
+      </li>
+      {%- endfor %}
+    </ol>
+    {% elif not is_home %}
+    <div class="empty">
+      <h2>0 rezultata{% if q %} za „{{ q }}“{% endif %}</h2>
+      <ul>
+        <li>provjerite pravopis ili upišite kraći pojam</li>
+        {% if n_active %}<li><a href="?{{ qs(['kind', 'subject', 'from', 'to']) }}">uklonite filtere</a> i tražite u cijeloj arhivi</li>{% endif %}
+        <li>upišite opštiji pojam: „ispit“ umjesto „ispit iz BP1 u junu“</li>
+      </ul>
+      <p class="try">probajte: <a href="?q=rezultati+ispita">rezultati ispita</a> <a href="?q=rok+za+predaju">rok za predaju</a> <a href="?q=raspored">raspored</a></p>
+    </div>
+    {% endif %}
+    </div>
+
+    <nav class="status" aria-label="Stranice">
+      <span class="keys"><span><kbd>/</kbd> traži</span><span><kbd>j</kbd><kbd>k</kbd> kretanje</span><span><kbd><svg class="i" aria-hidden="true"><use href="#i-enter"></use></svg><span class="vh">Enter</span></kbd> otvori</span><span><kbd>p</kbd> predmet</span></span>
+      {%- set _prev = '<svg class="i" aria-hidden="true"><use href="#i-arrow-left"></use></svg>nazad' | safe -%}
+      {%- set _next = 'dalje<svg class="i" aria-hidden="true"><use href="#i-arrow-right"></use></svg>' | safe -%}
+      {% if pages and pages > 1 %}
+      <span class="pg">
+        {% if page > 1 %}<a class="btn" href="{{ page_href(page - 1) }}" rel="prev">{{ _prev }}</a>{% else %}<span class="btn" aria-disabled="true">{{ _prev }}</span>{% endif %}
+        <span>stranica <b>{{ page }}</b> od {{ pages }}</span>
+        {% if page < pages %}<a class="btn" href="{{ page_href(page + 1) }}" rel="next">{{ _next }}</a>{% else %}<span class="btn" aria-disabled="true">{{ _next }}</span>{% endif %}
+      </span>
+      {% endif %}
+    </nav>
+  </section>
+</div>
+{#- Static build: search.js fills #res from Pagefind with this row markup. -#}
+<template id="row-tpl">
+  <li class="row"><span class="k"><svg class="i" aria-hidden="true"><use href="#i-megaphone"></use></svg><span class="vh"></span></span><time class="d"></time><span class="s"></span><div class="tx"><h2 class="t"><a></a></h2><p class="x"></p></div></li>
+</template>
+<script type="module" src="/static/search.js" data-years="{{ years_json }}"></script>
+{% endblock %}

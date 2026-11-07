@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{% if q %}{{ q }} - {% endif %}FIT arhiva{% endblock %}
+{% block main %}
+<form class="search" role="search" method="get" action="/">
+  <label for="q">Pretraga</label>
+  <div class="row">
+    <input id="q" name="q" type="search" value="{{ q }}" placeholder="npr. rok za predaju seminarskih radova" autocomplete="off" autofocus>
+    <button type="submit">Traži</button>
+  </div>
+  <details class="filters" {% if p.kind or p.subject or p.from or p.to %}open{% endif %}>
+    <summary>Filteri</summary>
+    <div class="grid">
+      <label>Vrsta
+        <select name="type">
+          <option value="">Sve</option>
+          <option value="post" {% if p.kind == 'post' %}selected{% endif %}>Obavijesti</option>
+          <option value="document" {% if p.kind == 'document' %}selected{% endif %}>Dokumenti</option>
+        </select>
+      </label>
+      <label>Predmet
+        <select name="subject">
+          <option value="">Svi predmeti</option>
+          {% for s in subjects %}<option value="{{ s }}" {% if s == p.subject %}selected{% endif %}>{{ s }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Od godine <input name="from" type="number" inputmode="numeric" min="2000" max="2100" value="{{ p.from or '' }}"></label>
+      <label>Do godine <input name="to" type="number" inputmode="numeric" min="2000" max="2100" value="{{ p.to or '' }}"></label>
+    </div>
+  </details>
+</form>
+
+<p class="count" role="status">{% if q %}Rezultata: {{ total }}{% else %}Najnovije stavke ({{ total }}){% endif %}</p>
+<ol class="results">
+{% for r in results %}
+  <li>
+    <h2><a href="/item/{{ r.id }}">{{ r.title }}</a></h2>
+    <p class="meta"><span class="tag">{{ 'Obavijest' if r.kind == 'post' else 'Dokument' }}</span>
+      {% if r.subject %}{{ r.subject }} · {% endif %}{% if r.date %}<time datetime="{{ r.date }}">{{ r.date[8:10] }}.{{ r.date[5:7] }}.{{ r.date[:4] }}</time>{% elif r.year %}{{ r.year }}{% endif %}</p>
+    <p class="snip">{{ r.snippet }}</p>
+  </li>
+{% else %}
+  <li class="empty">Nema rezultata.</li>
+{% endfor %}
+</ol>
+
+{% if pages > 1 %}
+<nav class="pager" aria-label="Stranice rezultata">
+  {% if page > 1 %}<a rel="prev" href="/?{{ (args | dictsort + [('page', page - 1)]) | urlencode }}">Prethodna</a>{% endif %}
+  <span>Stranica {{ page }} od {{ pages }}</span>
+  {% if page < pages %}<a rel="next" href="/?{{ (args | dictsort + [('page', page + 1)]) | urlencode }}">Sljedeća</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

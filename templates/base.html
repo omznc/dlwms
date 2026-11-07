@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="bs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{% block title %}FIT arhiva{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Preskoči na sadržaj</a>
+<header class="top">
+  <a class="brand" href="/">FIT arhiva</a>
+  {% if user %}<span class="who">Prijavljeni ste kao {{ user }}</span>{% endif %}
+</header>
+<main id="main">{% block main %}{% endblock %}</main>
+<footer class="foot">Neslužbena arhiva obavijesti i dokumenata sa fit.ba portala. Samo za studente.</footer>
+</body>
+</html>

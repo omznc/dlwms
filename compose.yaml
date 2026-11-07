@@ -1,0 +1,17 @@
+# The server already runs cloudflared as a host service.
+# The tunnel ingress points to http://127.0.0.1:8790.
+services:
+  app:
+    build: .
+    image: fit-archive:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8790:8000"
+    volumes:
+      - ./index.db:/data/index.db:ro
+      - ./files:/data/files:ro
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

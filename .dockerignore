@@ -1,0 +1,8 @@
+*.db
+*.db-journal
+files
+models
+__pycache__
+*.log
+.env
+.git

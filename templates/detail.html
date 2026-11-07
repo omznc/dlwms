@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ it.title }} - FIT arhiva{% endblock %}
+{% block main %}
+<article class="detail">
+  <p><a href="javascript:history.length > 1 ? history.back() : (location.href = '/')" hidden></a><a href="/">&larr; Nazad na pretragu</a></p>
+  <h1>{{ it.title }}</h1>
+  <dl class="facts">
+    <dt>Vrsta</dt><dd>{{ 'Obavijest' if it.kind == 'post' else 'Dokument' }}</dd>
+    {% if it.subject %}<dt>Predmet</dt><dd>{{ it.subject }}</dd>{% endif %}
+    {% if it.date %}<dt>Datum</dt><dd>{{ it.date[8:10] }}.{{ it.date[5:7] }}.{{ it.date[:4] }}</dd>{% endif %}
+    {% if it.author %}<dt>Autor</dt><dd>{{ it.author }}</dd>{% endif %}
+    {% if doc %}
+      {% if doc.school_year %}<dt>Školska godina</dt><dd>{{ doc.school_year }}</dd>{% endif %}
+      {% if doc.kind %}<dt>Tip</dt><dd>{{ doc.kind }}</dd>{% endif %}
+      {% if doc.uploaded_at %}<dt>Postavljeno</dt><dd>{{ doc.uploaded_at }}</dd>{% endif %}
+      {% if doc.size %}<dt>Veličina</dt><dd>{{ (doc.size | int / 1024) | round(1) }} KB</dd>{% endif %}
+    {% endif %}
+  </dl>
+  {% if doc %}<p><a class="button" href="/item/{{ it.id }}/file" download>Preuzmi original ({{ doc.filename }})</a></p>{% endif %}
+  {% if source_url %}<p><a href="{{ source_url }}" rel="noopener noreferrer" target="_blank">Original na fit.ba (potrebna prijava)</a></p>{% endif %}
+  <h2>{{ 'Tekst' if doc else 'Sadržaj' }}</h2>
+  {% if it.html %}<div class="rich">{{ it.html | safe }}</div>{% elif it.body %}<div class="text">{{ it.body }}</div>{% else %}<p>Tekst nije izdvojen iz ove datoteke.</p>{% endif %}
+</article>
+{% endblock %}

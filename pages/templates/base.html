@@ -1,0 +1,102 @@
+{%- set _email = user_email | default(email | default('')) -%}
+<!doctype html>
+<html lang="bs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex, nofollow">
+<title>{% block title %}Pretraga{% endblock %} · arhiva</title>
+<link rel="stylesheet" href="/static/style.css">
+<script type="speculationrules">{"prerender": [{"where": {"href_matches": "/item/*"}, "eagerness": "moderate"}]}</script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='3' y='3' width='10' height='10' fill='%23111214'/%3E%3C/svg%3E">
+</head>
+<body>
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+  <symbol id="i-arrow-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M16 13H8M16 17H8M10 9H8"/></symbol>
+  <symbol id="i-megaphone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4v7a4 4 0 0 1-4 4H4"/><path d="m9 10-5 5 5 5"/></symbol>
+</svg>
+<div class="page">
+<a class="skip" href="#sadrzaj">Preskoči na sadržaj</a>
+<header class="topbar">
+  <a class="brand" href="/"><i class="brand__sq" aria-hidden="true"></i>arhiva<span>dlwms</span></a>
+  <form id="sf" class="cmd" action="/" method="get" role="search">
+    <label class="vh" for="q">Pretraži arhivu</label>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M16.5 16.5L21 21"></path></svg>
+    <input id="q" name="q" type="search" value="{{ q | default('') }}" placeholder="Pretraži obavijesti i dokumente" autocomplete="off" enterkeyhint="search">
+    <kbd aria-hidden="true">/</kbd>
+    <button class="cmd__go" type="submit">Traži</button>
+  </form>
+  {% if _email %}<p class="user"><span class="user__label">Prijavljeni ste kao </span><b>{{ _email }}</b></p>{% endif %}
+</header>
+<main class="main" id="sadrzaj">
+{% block main %}{% endblock %}
+</main>
+</div>
+<script>
+/* Optional enhancements. Every page works without this script. */
+(function () {
+  var d = document;
+  var wide = window.matchMedia && matchMedia('(min-width: 900px)').matches;
+
+  /* Filters: open on wide screens; on phones close unless a filter is active. */
+  var f = d.querySelector('details.filters');
+  if (f && !wide && !f.hasAttribute('data-active')) f.open = false;
+
+  /* Subject search inside the filter panel. */
+  var box = d.querySelector('[data-subject-search]');
+  var list = d.querySelector('[data-subject-list]');
+  var hint = d.querySelector('[data-subject-hint]');
+  if (box && list) {
+    box.hidden = false;
+    var inp = box.querySelector('input');
+    var opts = [].slice.call(list.querySelectorAll('label'));
+    opts.forEach(function (o) { var n = o.querySelector('.opt__name'); o._t = n.textContent; o._n = n; });
+    var fold = function (s) { return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd'); };
+    var esc = function (s) { return s.replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); };
+    var run = function () {
+      var v = fold(inp.value.trim()), shown = 0;
+      opts.forEach(function (o) {
+        var i = v ? fold(o._t).indexOf(v) : 0;
+        var on = o.querySelector('input').checked;
+        var ok = !v || i > -1 || on;
+        o.hidden = !ok;
+        if (ok) shown++;
+        o._n.innerHTML = (v && i > -1) ? esc(o._t.slice(0, i)) + '<mark>' + esc(o._t.slice(i, i + v.length)) + '</mark>' + esc(o._t.slice(i + v.length)) : esc(o._t);
+      });
+      if (hint) hint.textContent = v ? shown + ' od ' + opts.length + ' predmeta, esc briše' : '';
+    };
+    inp.addEventListener('input', run);
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { inp.value = ''; run(); } if (e.key === 'Enter') e.preventDefault(); });
+  }
+
+  /* Apply filters right away when a choice changes. */
+  d.querySelectorAll('.filters input[type=radio], .filters input[type=checkbox]').forEach(function (i) {
+    i.addEventListener('change', function () { var s = d.getElementById('sf'); if (s) s.requestSubmit ? s.requestSubmit() : s.submit(); });
+  });
+
+  /* Keys: / search, p subject, j/k move between results, Enter opens. */
+  d.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var t = e.target;
+    if (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+    var links = [].slice.call(d.querySelectorAll('.row .t a'));
+    var i = links.indexOf(d.activeElement);
+    if (e.key === '/') { e.preventDefault(); var q = d.getElementById('q'); q.focus(); q.select(); }
+    else if (e.key === 'p' && box) { e.preventDefault(); if (f) f.open = true; box.querySelector('input').focus(); }
+    else if ((e.key === 'j' || e.key === 'k') && links.length) {
+      e.preventDefault();
+      var n = e.key === 'j' ? Math.min(i + 1, links.length - 1) : Math.max(i - 1, 0);
+      links[n].focus(); links[n].closest('.row').scrollIntoView({ block: 'nearest' });
+    }
+  });
+})();
+</script>
+</body>
+</html>

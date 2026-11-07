@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}{{ it.title }}{% endblock %}
+
+{% block main %}
+{#- Settings. Change the download route here if yours is different. -#}
+{%- set _is_doc = (doc is defined) and doc -%}
+{%- set _download = download_url | default('/download/' ~ it.id) -%}
+{%- set _subj_href = '/?subject=' ~ (it.subject | urlencode) -%}
+
+{%- macro fmt_size(kb) -%}
+{%- if kb is number and kb >= 1024 -%}{{ ('%.1f' | format(kb / 1024)) | replace('.', ',') }} MB{%- elif kb is number -%}{{ kb | round | int }} KB{%- else -%}{{ kb }} KB{%- endif -%}
+{%- endmacro -%}
+
+{%- set EXT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"></path></svg>' | safe -%}
+{%- set ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>' | safe -%}
+
+<div class="shell shell--detail{% if _is_doc %} shell--doc{% endif %}">
+
+  <article class="art" aria-labelledby="title">
+    <nav class="crumbs" aria-label="Navigacija">
+      <a href="/"><svg class="i" aria-hidden="true"><use href="#i-arrow-left"></use></svg>pretraga</a>
+      {% if it.subject %}<svg class="i crumbs__sep" aria-hidden="true"><use href="#i-chevron-right"></use></svg><a href="{{ _subj_href }}">{{ it.subject }}</a>{% endif %}
+    </nav>
+    <p class="meta">
+      {% if _is_doc %}<span class="k k--doc"><svg class="i" aria-hidden="true"><use href="#i-file"></use></svg>Dokument</span>{% if doc.kind %}<span>{{ doc.kind }}</span>{% endif %}
+      {% else %}<span class="k k--post"><svg class="i" aria-hidden="true"><use href="#i-megaphone"></use></svg>Obavijest</span>{% endif %}
+      {% if it.date %}<time datetime="{{ it.date }}">{{ it.date }}</time>{% endif %}
+      {% if it.author %}<span>{{ it.author }}</span>{% endif %}
+    </p>
+    <h1 class="title" id="title">{{ it.title }}</h1>
+
+    {% if _is_doc %}
+      {%- set _lines = (it.body or '') | trim -%}
+      {% if _lines %}
+      {%- set _ll = _lines.splitlines() -%}
+      <div class="code-h"><span><b>Tekst dokumenta</b></span><span>{{ _ll | length }} redova</span></div>
+      <ol class="code">
+        {%- for line in _ll %}
+        <li>{{ line }}</li>
+        {%- endfor %}
+      </ol>
+      <a class="to-top" href="#title"><svg class="i" aria-hidden="true"><use href="#i-arrow-up"></use></svg>na vrh</a>
+      {% else %}
+      <p class="empty">Za ovaj dokument nema izvučenog teksta. Preuzmite datoteku da vidite sadržaj.</p>
+      {% endif %}
+    {% else %}
+      {% if it.html %}<div class="prose prose--html">{{ it.html | safe }}</div>
+      {% else %}<div class="prose">{{ (it.body or '') | trim }}</div>{% endif %}
+    {% endif %}
+  </article>
+
+  <aside class="dside" aria-label="{{ 'Datoteka' if _is_doc else 'Izvor' }}">
+    <div>
+      {% if _is_doc %}
+      {%- set _ext = (doc.filename.rsplit('.', 1)[-1] if (doc.filename and '.' in doc.filename) else '') | upper -%}
+      <div class="grp">
+        <a class="btn btn--inv btn--lg btn--block" href="{{ _download }}" download>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg>
+          Preuzmi{% if _ext %} {{ _ext }}{% endif %}{% if doc.size %}<span class="btn__sub">{{ fmt_size(doc.size) }}</span>{% endif %}
+        </a>
+        <p class="file">{{ doc.filename }}</p>
+        <dl class="dl">
+          {% if doc.kind %}<dt>vrsta</dt><dd>{{ doc.kind }}</dd>{% endif %}
+          {% if doc.school_year %}<dt>šk. godina</dt><dd>{{ doc.school_year }}</dd>{% endif %}
+          {% if doc.size %}<dt>veličina</dt><dd>{{ doc.size }} KB</dd>{% endif %}
+          {% if doc.uploaded_at %}<dt>postavljeno</dt><dd>{{ (doc.uploaded_at | string)[:10] }}</dd>{% endif %}
+          {% if it.subject %}<dt>predmet</dt><dd>{{ it.subject }}</dd>{% endif %}
+        </dl>
+      </div>
+      {% endif %}
+
+      {% if source_url %}
+      <div class="grp">
+        <p class="sec">Original</p>
+        <a class="lnk" href="{{ source_url }}" rel="noopener" target="_blank">otvori na fit.ba {{ EXT }}</a>      </div>
+      {% endif %}
+
+      {% if it.subject %}
+      <div class="grp">
+        <p class="sec">Predmet</p>
+        <a class="lnk" href="{{ _subj_href }}"><span>sve iz: {{ it.subject }}</span>{{ ARROW }}</a>
+      </div>
+      {% endif %}
+    </div>
+  </aside>
+</div>
+{% endblock %}

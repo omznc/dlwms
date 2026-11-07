@@ -1,0 +1,11 @@
+.env
+*.db
+*.db.*
+*.db-*
+*.log
+files/
+models/
+__pycache__/
+.cloudflare/
+pages/.build/
+node_modules/
