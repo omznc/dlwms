@@ -59,7 +59,12 @@ export default {
 		keyUrl.searchParams.set("__v", VERSION);
 		const key = new Request(keyUrl.toString());
 		const cached = await caches.default.match(key);
-		if (cached) return cached;
+		if (cached) {
+			// The zone's Browser Cache TTL replaces Cache-Control on a cached response, so set it again.
+			const response = new Response(cached.body, cached);
+			response.headers.set("Cache-Control", cacheControl(url.pathname));
+			return response;
+		}
 		const origin = url.pathname.startsWith("/files/") ? await courseFile(url.pathname) : await page(url);
 		if (!origin) return new Response("Not found", { status: 404 });
 		// Cache only a 200: a 404 for a new Pagefind file must not stay in the cache.
