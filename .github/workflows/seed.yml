@@ -1,0 +1,30 @@
+# One-time job: copy the course files from the old R2 Worker to the releases.
+name: seed files
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ github.token }}
+      STATE_KEY: ${{ secrets.STATE_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+      - run: ci/state.sh pull
+      - run: python3 ci/seed_files.py fit.db files https://dlwms.omarzunic.com
+      - name: Upload, one process for each release
+        run: |
+          python3 -c 'import sys, sqlite3; sys.path.insert(0, "pages"); from assets import release_tag
+          print(*sorted({release_tag(y) for (y,) in sqlite3.connect("fit.db").execute("SELECT school_year FROM documents WHERE path IS NOT NULL")}), sep="\n")' |
+            xargs -P 8 -I{} uv run pages/release_files.py fit.db files "$GITHUB_REPOSITORY" {}

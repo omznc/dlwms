@@ -3,7 +3,7 @@
 # ///
 """Upload the course files that are not in a GitHub release yet.
 
-Usage: uv run pages/release_files.py <fit.db> <files dir> <owner/repo>
+Usage: uv run pages/release_files.py <fit.db> <files dir> <owner/repo> [release tag ...]
 Each school year has one release (for example files-2023-2024). A restart skips the uploaded assets.
 A file of 0 bytes with a larger size in fit.db is a CI placeholder: the file is in a release already.
 """
@@ -32,7 +32,7 @@ def existing_assets(repo, tag):
         gh("release", "create", tag, "-R", repo, "--latest=false", "--title", tag,
            "--notes", "The course files of one school year. The asset name is a hash of the file path.")
         return set()
-    return set(gh("api", "--paginate", f"repos/{repo}/releases/{release['id']}/assets?per_page=100", "-q", ".[].name").split())
+    return set(gh("api", "--paginate", f"repos/{repo}/releases/{release['id']}/assets?per_page=100", "-q", '.[] | select(.state == "uploaded") | .name').split())
 
 
 def upload(repo, tag, todo):
@@ -70,13 +70,15 @@ def missing(rows, have, files_dir, lost):
     return todo
 
 
-def main(fit_db, files_dir, repo):
+def main(fit_db, files_dir, repo, *only):
     db = sqlite3.connect(f"file:{fit_db}?mode=ro", uri=True)
     by_tag = defaultdict(list)
     for path, year, size in db.execute("SELECT path, school_year, size FROM documents WHERE path IS NOT NULL"):
         by_tag[release_tag(year)].append((path, size or 0))
     lost = []
     for tag, rows in sorted(by_tag.items()):
+        if only and tag not in only:
+            continue
         names = {asset_name(path) for path, _ in rows}
         assert len(names) == len(rows), f"{tag}: two paths give one asset name"
         assert len(rows) < MAX_ASSETS, f"{tag}: {len(rows)} files, split the release"
@@ -89,4 +91,4 @@ def main(fit_db, files_dir, repo):
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:4])
+    main(*sys.argv[1:])
