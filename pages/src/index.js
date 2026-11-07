@@ -5,12 +5,16 @@ const RELEASES = "https://github.com/omznc/dlwms/releases/download";
 // Pagefind file names have a content hash, except these entry files.
 const ENTRY = /^\/pagefind\/pagefind[^/]*\.(js|json|css)$/;
 const YEAR = 31536000;
+// Part of the cache key. Increase it after a change to the templates or /static/, so the edge drops the old item pages.
+const VERSION = 1;
 
-function maxAge(path) {
-	if (path.startsWith("/files/") || path.startsWith("/img/")) return YEAR;
-	if (path.startsWith("/pagefind/") && !ENTRY.test(path)) return YEAR;
-	// The pages, /static/ and the Pagefind entry files change with each deploy.
-	return 300;
+function cacheControl(path) {
+	if (path.startsWith("/files/") || path.startsWith("/img/")) return `public, max-age=${YEAR}, immutable`;
+	if (path.startsWith("/pagefind/") && !ENTRY.test(path)) return `public, max-age=${YEAR}, immutable`;
+	// An item never changes after it is posted. The browser checks again after a day, for a template change.
+	if (path.startsWith("/item/")) return `public, max-age=86400, s-maxage=${YEAR}`;
+	// The home page, /static/ and the Pagefind entry files change with each deploy.
+	return "public, max-age=300";
 }
 
 async function courseFile(path) {
@@ -51,7 +55,9 @@ export default {
 			return new Response("Method not allowed", { status: 405, headers: { Allow: "GET, HEAD" } });
 		}
 		const url = new URL(request.url);
-		const key = new Request(url.toString());
+		const keyUrl = new URL(url);
+		keyUrl.searchParams.set("__v", VERSION);
+		const key = new Request(keyUrl.toString());
 		const cached = await caches.default.match(key);
 		if (cached) return cached;
 		const origin = url.pathname.startsWith("/files/") ? await courseFile(url.pathname) : await page(url);
@@ -60,7 +66,7 @@ export default {
 		if (origin.status !== 200) return origin;
 		const response = new Response(origin.body, origin);
 		response.headers.delete("Expires");
-		response.headers.set("Cache-Control", `public, max-age=${maxAge(url.pathname)}`);
+		response.headers.set("Cache-Control", cacheControl(url.pathname));
 		ctx.waitUntil(caches.default.put(key, response.clone()));
 		return response;
 	},
