@@ -17,9 +17,17 @@ rows = sqlite3.connect(f"file:{fit_db}?mode=ro", uri=True).execute(
 
 def fetch(row):
     path, size = row
-    url = f"{site}/files/{urllib.parse.quote(path.replace('..', '.'))}"
-    with urllib.request.urlopen(url, timeout=300) as response:
-        data = response.read()
+    # Cloudflare refuses the default Python-urllib User-Agent with a 403.
+    url = urllib.request.Request(f"{site}/files/{urllib.parse.quote(path.replace('..', '.'))}",
+                                 headers={"User-Agent": "dlwms-seed"})
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(url, timeout=300) as response:
+                data = response.read()
+            break
+        except OSError as error:
+            if attempt == 2:
+                return f"{path}: {error}"
     if len(data) != size:
         return f"{path}: {len(data)} bytes, fit.db has {size}"
     target = os.path.join(files_dir, path)
