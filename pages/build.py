@@ -34,6 +34,8 @@ TITLE = '<h1 class="title" id="title">'
 BODIES = ('<div class="prose">', '<div class="prose prose--html">', '<ol class="code">')
 
 env = Environment(loader=FileSystemLoader(HERE / "templates"), autoescape=select_autoescape())
+# The content hash makes a new URL after each change, so a browser never mixes new HTML with an old cached file.
+env.globals["static"] = lambda name: f"/static/{name}?v={hashlib.sha256((HERE / 'static' / name).read_bytes()).hexdigest()[:10]}"
 
 
 def extract_images(html, img_dir):
@@ -97,6 +99,20 @@ def render_home(db, total):
         year_hist=sorted(years.items()), years_json=json.dumps(sorted(years)), pages=0, page=1)
 
 
+def file_releases(db):
+    """One row per files-<school year> release, newest first, for the download panel."""
+    count, size = Counter(), Counter()
+    for (meta,) in db.execute("SELECT meta FROM items WHERE kind = 'document'"):
+        doc = dict(zip(DOC_FIELDS, meta.split("\x1f")))
+        if doc["path"]:
+            tag = release_tag(doc["school_year"])
+            count[tag] += 1
+            size[tag] += int(doc["size"] or 0)
+    return [{"tag": t, "label": t.removeprefix("files-").replace("-", "/").replace("other", "ostalo"),
+             "count": count[t], "size": f"{size[t] / 1e9:.1f} GB" if size[t] >= 1e9 else f"{size[t] / 1e6:.0f} MB"}
+            for t in sorted(count, reverse=True)]
+
+
 def main(index_db, out):
     site = Path(out) / "site"
     shutil.rmtree(site, ignore_errors=True)
@@ -104,6 +120,7 @@ def main(index_db, out):
     (site / "img").mkdir()
     db = sqlite3.connect(f"file:{index_db}?mode=ro", uri=True)
     db.row_factory = sqlite3.Row
+    env.globals["file_releases"] = file_releases(db)
     count = 0
     for it in db.execute("SELECT * FROM items"):
         page_dir = site / "item" / str(it["id"])

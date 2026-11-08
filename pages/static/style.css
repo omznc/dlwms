@@ -163,18 +163,44 @@ kbd {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .user b { color: var(--fg); font-weight: 500; }
-/* The pages build has no email, so the links take the "user" cell. */
-.dl { grid-area: user; justify-self: end; display: flex; gap: 6px; }
-.dl a {
-  display: inline-flex; align-items: center;
-  min-height: 32px; padding: 0 10px;
-  border: 1px solid var(--line);
-  color: var(--fg);
+/* The pages build has no email, so the download button takes the "user" cell. */
+.dl-open {
+  grid-area: user; justify-self: end;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 10px;
+  border: 1px solid var(--line); background: var(--field); color: var(--fg);
   font: 500 12px var(--mono);
-  text-decoration: none;
+  cursor: pointer;
 }
-.dl a:hover { background: var(--hover); }
-.dl a:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.dl-open:hover { background: var(--hover); }
+.dl-open:focus-visible, .drawer__x:focus-visible, .drawer .opt:focus-visible { outline: 2px solid var(--fg); outline-offset: -2px; }
+.dl-open .i { color: var(--dim); }
+
+/* ---- Download panel: the left panel's look, on the right ---------------- */
+.drawer {
+  inset: 0 0 0 auto;
+  width: min(320px, 88vw); height: 100dvh; max-height: none;
+  margin: 0; padding: 0; overflow-y: auto;
+  border: 0; border-left: 1px solid var(--line);
+  background: var(--bg); color: var(--text);
+  translate: 100% 0;
+  transition: translate .2s ease-out, overlay .2s allow-discrete, display .2s allow-discrete;
+}
+.drawer:popover-open { translate: 0; }
+@starting-style { .drawer:popover-open { translate: 100% 0; } }
+.drawer::backdrop { background: rgb(0 0 0 / .35); }
+.drawer .filters__sum { cursor: default; background: var(--bar); }
+.drawer__t { font: inherit; margin: 0; }
+.drawer__x {
+  display: grid; place-items: center;
+  width: 32px; height: 32px; margin-left: auto;
+  border: 0; background: none; color: var(--dim); cursor: pointer;
+}
+.drawer__x:hover { background: var(--hover); color: var(--fg); }
+.drawer .sec { margin-top: 8px; }
+.drawer .opt { text-decoration: none; }
+.drawer .opt__name { color: var(--fg); font: 500 13px var(--mono); }
+.drawer .hint { line-height: 1.5; }
 .user__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
 .cmd {
@@ -214,8 +240,8 @@ kbd {
   .cmd input { font-size: 13px; }
   .cmd kbd { display: inline-block; }
   .cmd__go { height: 24px; font-size: 11px; }
-  .user, .dl { padding: 0 16px; }
-  .dl a { min-height: 26px; font-size: 11px; }
+  .user { padding: 0 16px; }
+  .dl-open { height: 28px; margin: 0 16px; font-size: 11px; }
   .user__label { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
 }
 
@@ -353,8 +379,8 @@ kbd {
 
 @container page (min-width: 900px) {
   .side { border-bottom: 0; border-right: 1px solid var(--line); }
-  .filters__sum { display: none; }
-  .filters__body { padding-top: 14px; border-top: 0; }
+  .side .filters__sum { display: none; }
+  .side .filters__body { padding-top: 14px; border-top: 0; }
   .subj { max-height: 360px; }
   .sfind input, .field { font-size: 12.5px; }
 }

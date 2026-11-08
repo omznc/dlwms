@@ -7,7 +7,7 @@
 <meta name="color-scheme" content="light dark">
 <meta name="robots" content="noindex, nofollow">
 <title>{% block title %}Pretraga{% endblock %} · arhiva</title>
-<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="{{ static('style.css') }}">
 <script type="speculationrules">{"prerender": [{"where": {"href_matches": "/item/*"}, "eagerness": "moderate"}]}</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='3' y='3' width='10' height='10' fill='%23111214'/%3E%3C/svg%3E">
 </head>
@@ -20,6 +20,8 @@
   <symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M16 13H8M16 17H8M10 9H8"/></symbol>
   <symbol id="i-megaphone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></symbol>
   <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></symbol>
   <symbol id="i-enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4v7a4 4 0 0 1-4 4H4"/><path d="m9 10-5 5 5 5"/></symbol>
 </svg>
 <div class="page">
@@ -33,12 +35,31 @@
     <kbd aria-hidden="true">/</kbd>
     <button class="cmd__go" type="submit">Traži</button>
   </form>
-  <nav class="dl" aria-label="Preuzimanje">
-    <a href="https://github.com/omznc/dlwms/releases/download/dataset/dlwms.db.zst" title="Obavijesti i metapodaci dokumenata, SQLite (zstd)">Baza</a>
-    <a href="https://github.com/omznc/dlwms/releases" title="Fajlovi predmeta, jedno izdanje za svaku školsku godinu">Fajlovi</a>
-  </nav>
+  <button class="dl-open"type="button" popovertarget="drawer"><svg class="i" aria-hidden="true"><use href="#i-download"></use></svg>Preuzmi</button>
   {% if _email %}<p class="user"><span class="user__label">Prijavljeni ste kao </span><b>{{ _email }}</b></p>{% endif %}
 </header>
+<aside class="drawer" id="drawer" popover aria-labelledby="drawer-t">
+  <div class="filters__sum">
+    <svg class="i" aria-hidden="true"><use href="#i-download"></use></svg>
+    <h2 id="drawer-t" class="drawer__t">Preuzimanje</h2>
+    <button class="drawer__x" type="button" popovertarget="drawer" popovertargetaction="hide" aria-label="Zatvori"><svg class="i" aria-hidden="true"><use href="#i-x"></use></svg></button>
+  </div>
+  <div class="filters__body">
+    <section class="fgroup">
+      <h3 class="sec">Baza <span>SQLite, zstd</span></h3>
+      <a class="opt" href="https://github.com/omznc/dlwms/releases/download/dataset/dlwms.db.zst"><span class="k" aria-hidden="true"><svg class="i"><use href="#i-file"></use></svg></span><span class="opt__name">dlwms.db.zst</span><span class="n">obavijesti, dokumenti</span></a>
+    </section>
+    {% if file_releases %}
+    <section class="fgroup">
+      <h3 class="sec">Fajlovi <span>po školskoj godini</span></h3>
+      {%- for r in file_releases %}
+      <a class="opt" href="https://github.com/omznc/dlwms/releases/tag/{{ r.tag }}"><span class="opt__name">{{ r.label }}</span><span class="n">{{ r.count }} · {{ r.size }}</span></a>
+      {%- endfor %}
+    </section>
+    {% endif %}
+    <p class="hint">Baza se ažurira svaki dan. Fajlovi su na GitHubu, jedno izdanje za svaku školsku godinu.</p>
+  </div>
+</aside>
 <main class="main" id="sadrzaj">
 {% block main %}{% endblock %}
 </main>
