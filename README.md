@@ -12,6 +12,20 @@ The site is static. It is at https://dlwms.omarzunic.com. The UI is in Bosnian.
   4. It saves the state, builds the static site with Pagefind search and deploys it to GitHub Pages.
 - A Cloudflare Worker (`pages/src/index.js`) serves the domain. It gets the pages from GitHub Pages and the files from the releases, and keeps them in the edge cache.
 
+## Download the data
+
+The daily sync updates all the data in the releases:
+
+- `dataset`: `dlwms.db.zst`, a SQLite file with two tables. `posts` holds the news posts. `documents` holds the course document metadata and text.
+- `files-<school year>`: the course files. The `release` and `asset` columns of `documents` give the release and the asset name of each file.
+
+To get all the data:
+
+    gh release download dataset -R omznc/dlwms && zstd -d dlwms.db.zst
+    for t in $(gh release list -R omznc/dlwms --json tagName -q '.[].tagName' | grep '^files-'); do
+      gh release download "$t" -R omznc/dlwms -D "files/$t"
+    done
+
 ## Files
 
 - `fit_archive.py`: scrape the posts into `fit.db`.
