@@ -8,7 +8,7 @@ Usage: documents.py list | download | extract [--all] | sync | stats
   list      enumerate every year x subject x school year, insert metadata rows
   download  fetch the files of rows with fetched = 0 (4 logins in parallel)
   extract   extract text from the downloaded files (no network)
-  sync      list + download + extract
+  sync      list (the two newest school years only) + download + extract
 
 A download is a postback that needs the ViewState of the grid page that shows
 the link. A worker therefore walks the grid pages of one search and downloads
@@ -170,10 +170,13 @@ def orphan_rows(all_rows, by_year_rows):
 	return fresh
 
 
-def crawl_list(db):
+def crawl_list(db, full=True):
 	# One write per subject: the other crawl holds the write lock between its commits.
+	# Without full, search only the two newest school years and skip the search with no school year.
 	client = Client()
 	years, subjects = read_options(client)
+	if not full:
+		years = sorted(years)[-2:]
 	print(f'{len(subjects)} subjects, school years {years}', flush=True)
 	for subject in subjects:
 		found = 0
@@ -183,7 +186,7 @@ def crawl_list(db):
 			rows = list_group(client, group)
 			by_year.append((group, rows))
 		group = {**subject, 'school_year': ''}
-		everything = list_group(client, group)
+		everything = list_group(client, group) if full else []
 		orphans = orphan_rows(everything, [r for _, rows in by_year for r in rows])
 		for g, rows in [*by_year, (group, orphans)]:
 			db_insert(db, g, rows)
@@ -447,7 +450,7 @@ def main():
 	db.executescript(SCHEMA)
 	command = sys.argv[1] if len(sys.argv) > 1 else 'sync'
 	if command in ('sync', 'list'):
-		crawl_list(db)
+		crawl_list(db, full=command == 'list')
 	if command in ('sync', 'download'):
 		crawl_download(db)
 	if command in ('sync', 'extract'):

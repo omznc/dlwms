@@ -111,8 +111,9 @@ def next_page_target(soup, current):
 	return match.group(1) if match else None
 
 
-def crawl_list(client, db):
-	# An empty search lists every post; the pager postbacks do not keep a date filter.
+def crawl_list(client, db, full=True):
+	# An empty search lists every post, newest first; the pager postbacks do not keep a date filter.
+	# Without full, stop after the first page that adds no post.
 	soup = client.get(ARCHIVE)
 	form = hidden(soup)
 	form.update({P + 'listPredmet': '', P + 'txtRijeci': '', P + 'listOperator': 'AND',
@@ -123,13 +124,15 @@ def crawl_list(client, db):
 	while True:
 		rows = [row for row in read_rows(soup) if row[0] not in seen]
 		seen.update(row[0] for row in rows)
+		before = db.total_changes
 		db.executemany('insert or ignore into posts (sqs, title, listed_at) values (?, ?, ?)', rows)
 		db.commit()
+		added = db.total_changes > before
 		if page % 25 == 0:
 			print(f'page {page}: total {len(seen)}', flush=True)
 		target = next_page_target(soup, page)
-		if target is None or not rows:
-			print(f'list done: {len(seen)} posts', flush=True)
+		if target is None or not rows or not (full or added):
+			print(f'list done at page {page}: {len(seen)} posts', flush=True)
 			return
 		form = hidden(soup)
 		form.update(__EVENTTARGET=target, __EVENTARGUMENT='')
@@ -242,7 +245,7 @@ def main():
 		search(db, ' '.join(sys.argv[2:]))
 		return
 	if command in ('sync', 'list'):
-		crawl_list(Client(), db)
+		crawl_list(Client(), db, full=command == 'list')
 	if command in ('sync', 'details'):
 		fetch_details(db)
 	if command in ('sync', 'details', 'images'):

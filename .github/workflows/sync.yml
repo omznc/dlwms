@@ -52,7 +52,7 @@ jobs:
       - name: Publish the dataset
         run: |
           python3 ci/dataset.py fit.db dlwms.db
-          zstd -q -T0 -19 -f dlwms.db -o dlwms.db.zst
+          zstd -q -T0 -10 -f dlwms.db -o dlwms.db.zst
           gh release view dataset -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 ||
             gh release create dataset -R "$GITHUB_REPOSITORY" --latest=false --title dataset --notes "The posts and the document metadata as SQLite (zstd). The daily sync replaces it. See the README."
           gh release upload dataset -R "$GITHUB_REPOSITORY" dlwms.db.zst --clobber
