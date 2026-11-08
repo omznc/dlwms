@@ -9,6 +9,7 @@ Usage: documents.py list | download | extract [--all] | sync | stats
   download  fetch the files of rows with fetched = 0 (4 logins in parallel)
   extract   extract text from the downloaded files (no network)
   sync      list (the two newest school years only) + download + extract
+  sync --full  sync with the full list
 
 A download is a postback that needs the ViewState of the grid page that shows
 the link. A worker therefore walks the grid pages of one search and downloads
@@ -450,7 +451,7 @@ def main():
 	db.executescript(SCHEMA)
 	command = sys.argv[1] if len(sys.argv) > 1 else 'sync'
 	if command in ('sync', 'list'):
-		crawl_list(db, full=command == 'list')
+		crawl_list(db, full=command == 'list' or '--full' in sys.argv)
 	if command in ('sync', 'download'):
 		crawl_download(db)
 	if command in ('sync', 'extract'):

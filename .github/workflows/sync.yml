@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "17 3 * * *"
   workflow_dispatch:
+    inputs:
+      full:
+        description: Walk all posts and all school years
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -38,10 +43,14 @@ jobs:
         run: ci/state.sh pull
       - name: Write placeholders for the old files
         run: python3 ci/placeholders.py fit.db files
+      # The daily run walks only the new posts and school years; the run on the 1st of the month walks all of them.
+      - name: Choose the list mode
+        run: |
+          if [[ "${{ inputs.full }}" == true || $(date -u +%d) == 01 ]]; then echo "FULL=--full" >> "$GITHUB_ENV"; fi
       - name: Scrape the posts
-        run: uv run fit_archive.py sync
+        run: uv run fit_archive.py sync $FULL
       - name: Scrape the documents
-        run: uv run documents.py sync
+        run: uv run documents.py sync $FULL
       # Upload the files before the state, so the state never lists a file that no release has.
       - name: Upload the new files
         run: uv run pages/release_files.py fit.db files "$GITHUB_REPOSITORY"

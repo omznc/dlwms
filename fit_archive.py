@@ -245,7 +245,7 @@ def main():
 		search(db, ' '.join(sys.argv[2:]))
 		return
 	if command in ('sync', 'list'):
-		crawl_list(Client(), db, full=command == 'list')
+		crawl_list(Client(), db, full=command == 'list' or '--full' in sys.argv)
 	if command in ('sync', 'details'):
 		fetch_details(db)
 	if command in ('sync', 'details', 'images'):
