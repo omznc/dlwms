@@ -163,6 +163,18 @@ kbd {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .user b { color: var(--fg); font-weight: 500; }
+/* The pages build has no email, so the links take the "user" cell. */
+.dl { grid-area: user; justify-self: end; display: flex; gap: 6px; }
+.dl a {
+  display: inline-flex; align-items: center;
+  min-height: 32px; padding: 0 10px;
+  border: 1px solid var(--line);
+  color: var(--fg);
+  font: 500 12px var(--mono);
+  text-decoration: none;
+}
+.dl a:hover { background: var(--hover); }
+.dl a:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 .user__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
 .cmd {
@@ -202,7 +214,8 @@ kbd {
   .cmd input { font-size: 13px; }
   .cmd kbd { display: inline-block; }
   .cmd__go { height: 24px; font-size: 11px; }
-  .user { padding: 0 16px; }
+  .user, .dl { padding: 0 16px; }
+  .dl a { min-height: 26px; font-size: 11px; }
   .user__label { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
 }
 

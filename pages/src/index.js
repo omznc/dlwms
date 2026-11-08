@@ -6,7 +6,7 @@ const RELEASES = "https://github.com/omznc/dlwms/releases/download";
 const ENTRY = /^\/pagefind\/pagefind[^/]*\.(js|json|css)$/;
 const YEAR = 31536000;
 // Part of the cache key. Increase it after a change to the templates or /static/, so the edge drops the old item pages.
-const VERSION = 1;
+const VERSION = 2;
 
 function cacheControl(path) {
 	if (path.startsWith("/files/") || path.startsWith("/img/")) return `public, max-age=${YEAR}, immutable`;
